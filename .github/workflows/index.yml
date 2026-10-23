@@ -1,0 +1,52 @@
+name: index
+
+# Publishes index.json -- the list the studio's browse view reads -- to the
+# `index` branch after every merge. A branch rather than a commit to main
+# keeps generated data out of review and needs no Pages setup; the studio
+# reads https://raw.githubusercontent.com/moellere/wirestudio-designs/index/index.json.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: index
+  cancel-in-progress: true
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Added/updated dates come from history.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install WireStudio
+        run: pip install -r requirements.txt
+
+      - name: Build index.json
+        run: |
+          mkdir -p "$RUNNER_TEMP/index"
+          python scripts/build_index.py > "$RUNNER_TEMP/index/index.json"
+
+      - name: Publish to the index branch
+        working-directory: ${{ runner.temp }}/index
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          git init -q -b index
+          git add index.json
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -qm "index for ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" index

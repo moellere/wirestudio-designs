@@ -1,0 +1,38 @@
+name: check
+
+# The merge gate. Every design is held to what the studio itself checks:
+# it loads in WireStudio and its generated YAML passes upstream
+# `esphome config`. Both are pinned in requirements.txt.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install WireStudio and ESPHome
+        run: pip install -r requirements.txt
+
+      - name: Test the checks
+        run: python -m pytest -q tests
+
+      - name: Check every design
+        run: python scripts/check.py

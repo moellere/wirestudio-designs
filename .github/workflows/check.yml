@@ -2,9 +2,7 @@ name: check
 
 # The merge gate. Every design is held to what the studio itself checks:
 # it loads in WireStudio and its generated YAML passes upstream
-# `esphome config`. Both are pinned, so a catalogue PR is judged against a
-# fixed bar; bump them together, in their own PR, and that PR re-checks
-# every design already here.
+# `esphome config`. Both are pinned in requirements.txt.
 
 on:
   pull_request:
@@ -19,10 +17,6 @@ concurrency:
   group: check-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  WIRESTUDIO_REF: 9810824ed3369fda99ddbb27108a79ff950295c1
-  ESPHOME_VERSION: "2026.6.5"
-
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -35,9 +29,7 @@ jobs:
           cache: pip
 
       - name: Install WireStudio and ESPHome
-        run: |
-          pip install "wirestudio @ git+https://github.com/moellere/WireStudio@${WIRESTUDIO_REF}" \
-            "esphome==${ESPHOME_VERSION}" pytest
+        run: pip install -r requirements.txt
 
       - name: Test the checks
         run: python -m pytest -q tests

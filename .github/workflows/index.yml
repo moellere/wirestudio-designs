@@ -17,9 +17,6 @@ concurrency:
   group: index
   cancel-in-progress: true
 
-env:
-  WIRESTUDIO_REF: 9810824ed3369fda99ddbb27108a79ff950295c1
-
 jobs:
   index:
     runs-on: ubuntu-latest
@@ -35,7 +32,7 @@ jobs:
           cache: pip
 
       - name: Install WireStudio
-        run: pip install "wirestudio @ git+https://github.com/moellere/WireStudio@${WIRESTUDIO_REF}"
+        run: pip install -r requirements.txt
 
       - name: Build index.json
         run: |

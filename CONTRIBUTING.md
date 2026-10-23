@@ -38,7 +38,7 @@ source: https://example.com/post  # optional: a write-up or build log
 Run the checks locally with WireStudio installed:
 
 ```
-pip install "wirestudio @ git+https://github.com/moellere/WireStudio" esphome
+pip install -r requirements.txt
 python scripts/check.py <name>
 ```
 

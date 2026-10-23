@@ -3,4 +3,5 @@
 # matches the pin WireStudio's own esphome-config gate uses.
 wirestudio @ git+https://github.com/moellere/WireStudio@9810824ed3369fda99ddbb27108a79ff950295c1
 esphome==2026.6.5
+pillow
 pytest

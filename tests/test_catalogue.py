@@ -117,3 +117,61 @@ def test_a_file_outside_a_design_directory_fails_the_run(designs, capsys):
 
 def test_an_empty_catalogue_passes(designs):
     assert check.main(["--no-esphome"]) == 0
+
+
+def _photo(path: Path, fmt="JPEG", size=(800, 600), exif=False):
+    from PIL import Image
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    img = Image.new("RGB", size, (40, 120, 200))
+    kwargs = {}
+    if exif:
+        e = Image.Exif()
+        e[0x010F] = "PhoneMaker"  # Make
+        kwargs["exif"] = e
+    img.save(path, fmt, **kwargs)
+
+
+def test_a_clean_photo_passes(designs):
+    d = add(designs, "porch-motion", _example("porch-motion"))
+    _photo(d / "photos" / "front.jpg")
+    _photo(d / "photos" / "inside.png", fmt="PNG")
+    assert errors("porch-motion") == []
+
+
+@pytest.mark.parametrize("name, kwargs, match", [
+    ("front.jpg", {"exif": True}, "carries metadata"),
+    ("front.jpg", {"size": (3000, 2000)}, "at most 2048 px"),
+    ("front.png", {"fmt": "JPEG"}, "not what its extension says"),
+    ("Front.JPG", {}, "not allowed"),
+    ("front.gif", {"fmt": "GIF"}, "not allowed"),
+])
+def test_a_bad_photo_is_refused(designs, name, kwargs, match):
+    d = add(designs, "porch-motion", _example("porch-motion"))
+    _photo(d / "photos" / name, **kwargs)
+    assert any(match in e for e in errors("porch-motion"))
+
+
+def test_a_corrupt_photo_is_refused(designs):
+    d = add(designs, "porch-motion", _example("porch-motion"))
+    (d / "photos").mkdir()
+    (d / "photos" / "front.jpg").write_bytes(b"\xff\xd8\xff not really a jpeg")
+    assert any("not a readable image" in e for e in errors("porch-motion"))
+
+
+def test_at_most_four_photos(designs):
+    d = add(designs, "porch-motion", _example("porch-motion"))
+    for i in range(5):
+        _photo(d / "photos" / f"p{i}.jpg", size=(64, 64))
+    assert any("at most 4 photos" in e for e in errors("porch-motion"))
+
+
+def test_strip_photos_makes_a_refused_photo_acceptable(designs):
+    import strip_photos
+
+    d = add(designs, "porch-motion", _example("porch-motion"))
+    _photo(d / "photos" / "IMG_0042.png", fmt="PNG", size=(4000, 3000), exif=True)
+    assert errors("porch-motion")
+    assert strip_photos.main([str(d)]) == 0
+    assert [p.name for p in catalogue.photos(d)] == ["img-0042.jpg"]
+    assert errors("porch-motion") == []

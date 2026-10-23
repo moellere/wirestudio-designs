@@ -46,6 +46,8 @@ def entry_json(entry: catalogue.Entry) -> dict:
         "components": sorted({c.library_id for c in design.components}),
         "schema_version": entry.raw.get("schema_version"),
         "has_readme": (entry.path / "README.md").is_file(),
+        "photos": [f"https://raw.githubusercontent.com/{REPO}/main/designs/{entry.slug}/photos/{p.name}"
+                   for p in catalogue.photos(entry.path)],
         "added": added,
         "updated": updated,
         "design_url": f"https://raw.githubusercontent.com/{REPO}/main/designs/{entry.slug}/design.json",

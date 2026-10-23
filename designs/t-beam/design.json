@@ -1,0 +1,296 @@
+{
+  "schema_version": "1.0",
+  "id": "t-beam",
+  "name": "LilyGO TTGO T-Beam (onboard)",
+  "description": "Template for the LilyGO T-Beam (915 MHz variant): the onboard SX1276 LoRa radio, NEO-6M GPS on a dedicated UART and the user button, plus an I2C OLED and a DHT sensor on GPIO13. The AXP192 PMIC has no ESPHome core component, so it is left out.",
+  "board": {
+    "library_id": "ttgo-t-beam",
+    "mcu": "esp32",
+    "framework": "arduino"
+  },
+  "power": {
+    "supply": "usb-5v",
+    "rail_voltage_v": 5,
+    "regulator": "onboard",
+    "budget_ma": 500
+  },
+  "requirements": [
+    {
+      "id": "r1",
+      "kind": "capability",
+      "text": "expose the board's built-in peripherals"
+    }
+  ],
+  "components": [
+    {
+      "id": "onboard_lora",
+      "library_id": "sx127x",
+      "label": "Onboard LoRa radio",
+      "params": {
+        "frequency": 915000000,
+        "modulation": "LORA",
+        "preamble_size": 8
+      }
+    },
+    {
+      "id": "onboard_gps",
+      "library_id": "uart_gps",
+      "label": "Onboard GPS",
+      "params": {
+        "sensors": {
+          "latitude": {
+            "name": "GPS Latitude"
+          },
+          "longitude": {
+            "name": "GPS Longitude"
+          },
+          "altitude": {
+            "name": "GPS Altitude"
+          },
+          "satellites": {
+            "name": "GPS Satellites"
+          }
+        }
+      }
+    },
+    {
+      "id": "onboard_button",
+      "library_id": "gpio_input",
+      "label": "Onboard button",
+      "params": {
+        "filters": [
+          {
+            "invert": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "ssd1306_1",
+      "library_id": "ssd1306",
+      "label": "SSD1306 / SH1106 OLED display (I2C)",
+      "params": {}
+    },
+    {
+      "id": "dht_1",
+      "library_id": "dht",
+      "label": "DHT11 / DHT22 / AM2302 temperature + humidity",
+      "params": {}
+    }
+  ],
+  "buses": [
+    {
+      "id": "spi_bus",
+      "type": "spi",
+      "clk": "GPIO5",
+      "miso": "GPIO19",
+      "mosi": "GPIO27"
+    },
+    {
+      "id": "gps_uart",
+      "type": "uart",
+      "tx": "GPIO12",
+      "rx": "GPIO34",
+      "baud_rate": 9600
+    },
+    {
+      "id": "i2c0",
+      "type": "i2c",
+      "sda": "GPIO21",
+      "scl": "GPIO22"
+    }
+  ],
+  "connections": [
+    {
+      "component_id": "onboard_lora",
+      "pin_role": "VCC",
+      "target": {
+        "kind": "rail",
+        "rail": "3V3"
+      }
+    },
+    {
+      "component_id": "onboard_lora",
+      "pin_role": "GND",
+      "target": {
+        "kind": "rail",
+        "rail": "GND"
+      }
+    },
+    {
+      "component_id": "onboard_lora",
+      "pin_role": "SCK",
+      "target": {
+        "kind": "bus",
+        "bus_id": "spi_bus"
+      }
+    },
+    {
+      "component_id": "onboard_lora",
+      "pin_role": "MISO",
+      "target": {
+        "kind": "bus",
+        "bus_id": "spi_bus"
+      }
+    },
+    {
+      "component_id": "onboard_lora",
+      "pin_role": "MOSI",
+      "target": {
+        "kind": "bus",
+        "bus_id": "spi_bus"
+      }
+    },
+    {
+      "component_id": "onboard_lora",
+      "pin_role": "CS",
+      "target": {
+        "kind": "gpio",
+        "pin": "GPIO18"
+      }
+    },
+    {
+      "component_id": "onboard_lora",
+      "pin_role": "RST",
+      "target": {
+        "kind": "gpio",
+        "pin": "GPIO23"
+      }
+    },
+    {
+      "component_id": "onboard_lora",
+      "pin_role": "DIO0",
+      "target": {
+        "kind": "gpio",
+        "pin": "GPIO26"
+      }
+    },
+    {
+      "component_id": "onboard_gps",
+      "pin_role": "VCC",
+      "target": {
+        "kind": "rail",
+        "rail": "3V3"
+      }
+    },
+    {
+      "component_id": "onboard_gps",
+      "pin_role": "GND",
+      "target": {
+        "kind": "rail",
+        "rail": "GND"
+      }
+    },
+    {
+      "component_id": "onboard_gps",
+      "pin_role": "TX",
+      "target": {
+        "kind": "bus",
+        "bus_id": "gps_uart"
+      }
+    },
+    {
+      "component_id": "onboard_gps",
+      "pin_role": "RX",
+      "target": {
+        "kind": "bus",
+        "bus_id": "gps_uart"
+      }
+    },
+    {
+      "component_id": "onboard_button",
+      "pin_role": "IN",
+      "target": {
+        "kind": "gpio",
+        "pin": "GPIO38"
+      }
+    },
+    {
+      "component_id": "ssd1306_1",
+      "pin_role": "VCC",
+      "target": {
+        "kind": "rail",
+        "rail": "3V3"
+      }
+    },
+    {
+      "component_id": "ssd1306_1",
+      "pin_role": "GND",
+      "target": {
+        "kind": "rail",
+        "rail": "GND"
+      }
+    },
+    {
+      "component_id": "ssd1306_1",
+      "pin_role": "SDA",
+      "target": {
+        "kind": "bus",
+        "bus_id": "i2c0"
+      }
+    },
+    {
+      "component_id": "ssd1306_1",
+      "pin_role": "SCL",
+      "target": {
+        "kind": "bus",
+        "bus_id": "i2c0"
+      }
+    },
+    {
+      "component_id": "ssd1306_1",
+      "pin_role": "RESET",
+      "target": {
+        "kind": "gpio",
+        "pin": "GPIO4"
+      }
+    },
+    {
+      "component_id": "dht_1",
+      "pin_role": "VCC",
+      "target": {
+        "kind": "rail",
+        "rail": "3V3"
+      }
+    },
+    {
+      "component_id": "dht_1",
+      "pin_role": "GND",
+      "target": {
+        "kind": "rail",
+        "rail": "GND"
+      }
+    },
+    {
+      "component_id": "dht_1",
+      "pin_role": "DATA",
+      "target": {
+        "kind": "gpio",
+        "pin": "GPIO13"
+      }
+    }
+  ],
+  "passives": [],
+  "warnings": [
+    {
+      "level": "info",
+      "code": "onboard_unmapped",
+      "text": "Onboard 'axp192' was not auto-added (no library component for it yet). Add it from the inspector if you need it."
+    }
+  ],
+  "esphome_extras": {
+    "captive_portal": {},
+    "logger": {}
+  },
+  "fleet": {
+    "device_name": "t-beam",
+    "tags": [
+      "onboard"
+    ],
+    "secrets_ref": {
+      "wifi_ssid": "!secret wifi_ssid",
+      "wifi_password": "!secret wifi_password",
+      "api_key": "!secret api_key"
+    }
+  }
+}

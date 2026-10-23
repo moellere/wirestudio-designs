@@ -30,8 +30,13 @@ Every design, on every pull request:
 - the ESPHome YAML WireStudio generates from it passes `esphome config`;
 - it holds no literal credentials -- Wi-Fi passwords, API keys and
   LoRaWAN keys stay `!secret` references;
-- its directory holds only `design.json`, `meta.yaml` and an optional
-  `README.md`.
+- its directory holds only `design.json`, `meta.yaml`, an optional
+  `README.md` and up to four photos, each a still JPEG, PNG or WebP
+  under 1 MB and 2048 px with no metadata (EXIF often records where a
+  photo was taken).
+
+Photos are reviewed by a maintainer before they merge, and the studio
+shows only photos that have merged.
 
 Passing CI means the design is well-formed. It does not mean anyone has
 built it; a design's README says whether its author has.

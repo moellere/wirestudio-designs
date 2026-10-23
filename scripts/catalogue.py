@@ -3,9 +3,12 @@
     designs/<slug>/design.json   the WireStudio design document (required)
     designs/<slug>/meta.yaml     author, tags, attribution (required)
     designs/<slug>/README.md     longer notes (optional)
+    designs/<slug>/photos/*      up to four photos of the build (optional)
 
-Nothing else is accepted in a design directory, which is also what keeps
-images out until there is a way to screen them.
+Nothing else is accepted in a design directory. Photos are checked for
+shape here -- format, size, and no metadata, since a phone photo's EXIF
+carries where it was taken -- and for content by the maintainer, who
+reviews every pull request before it merges.
 """
 from __future__ import annotations
 
@@ -28,6 +31,14 @@ LICENSE = "CC-BY-4.0"
 # Per-file size caps. A design.json is a few KB; anything near these is
 # not a design.
 ALLOWED_FILES = {"design.json": 256 * 1024, "meta.yaml": 4 * 1024, "README.md": 64 * 1024}
+PHOTO = re.compile(r"^photos/[a-z0-9][a-z0-9-]{0,62}\.(jpg|jpeg|png|webp)$")
+PHOTO_FORMATS = {"jpg": "JPEG", "jpeg": "JPEG", "png": "PNG", "webp": "WEBP"}
+MAX_PHOTOS = 4
+PHOTO_BYTES = 1024 * 1024
+PHOTO_PX = 2048
+# Metadata Pillow surfaces outside getexif(); any of it can carry a
+# location, a name or a device serial.
+PHOTO_META_KEYS = ("exif", "xmp", "XML:com.adobe.xmp", "comment")
 META_KEYS = {"author", "tags", "license", "derived_from", "source"}
 
 # Keys whose string values are credentials. WireStudio keeps them as
@@ -57,6 +68,42 @@ def stray_files() -> list[str]:
     if not DESIGNS.is_dir():
         return []
     return sorted(p.name for p in DESIGNS.iterdir() if p.is_file() and p.name != "README.md")
+
+
+def photos(path: Path) -> list[Path]:
+    d = path / "photos"
+    return sorted(p for p in d.iterdir() if p.is_file()) if d.is_dir() else []
+
+
+def check_photo(p: Path) -> list[str]:
+    """Shape only: a readable still image of an allowed format and size,
+    with no metadata. Whether it is fit to publish is the reviewer's call."""
+    from PIL import Image
+
+    rel = f"photos/{p.name}"
+    if p.stat().st_size > PHOTO_BYTES:
+        return [f"{rel}: over {PHOTO_BYTES // 1024} KB; resize it (scripts/strip_photos.py does)"]
+    try:
+        with Image.open(p) as img:
+            img.verify()
+        # verify() leaves the image unusable, so inspect a fresh open.
+        with Image.open(p) as img:
+            fmt, size = img.format, img.size
+            animated = getattr(img, "is_animated", False)
+            has_meta = bool(img.getexif()) or any(k in img.info for k in PHOTO_META_KEYS)
+    except Exception as e:  # truncated, corrupt or not an image at all
+        return [f"{rel}: not a readable image ({e})"]
+    errors = []
+    if fmt != PHOTO_FORMATS[p.suffix[1:].lower()]:
+        errors.append(f"{rel}: the file is {fmt}, not what its extension says")
+    if animated:
+        errors.append(f"{rel}: animated images are not accepted")
+    if max(size) > PHOTO_PX:
+        errors.append(f"{rel}: {size[0]}x{size[1]} px; at most {PHOTO_PX} px on the long side")
+    if has_meta:
+        errors.append(f"{rel}: carries metadata (EXIF/XMP: camera, time, often location); "
+                      "strip it with scripts/strip_photos.py")
+    return errors
 
 
 def _leaked_secrets(node, where: str = "") -> list[str]:
@@ -114,10 +161,15 @@ def load(slug: str, library=None) -> Entry:
         rel = p.relative_to(path).as_posix()
         if p.is_dir():
             continue
-        if rel not in ALLOWED_FILES:
-            entry.errors.append(f"{rel}: not allowed; a design holds only {sorted(ALLOWED_FILES)}")
+        if PHOTO.match(rel):
+            entry.errors += check_photo(p)
+        elif rel not in ALLOWED_FILES:
+            entry.errors.append(f"{rel}: not allowed; a design holds {sorted(ALLOWED_FILES)} and "
+                                "photos/<name>.jpg|png|webp")
         elif p.stat().st_size > ALLOWED_FILES[rel]:
             entry.errors.append(f"{rel}: over {ALLOWED_FILES[rel] // 1024} KB")
+    if len(photos(path)) > MAX_PHOTOS:
+        entry.errors.append(f"photos/: at most {MAX_PHOTOS} photos per design")
 
     meta_path = path / "meta.yaml"
     if not meta_path.is_file():

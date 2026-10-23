@@ -21,6 +21,7 @@ designs/<name>/
   design.json   the design, exported from WireStudio
   meta.yaml     who made it
   README.md     optional: what it is, what you built, what to watch for
+  photos/       optional: up to 4 photos of the build (front.jpg, inside.jpg)
 ```
 
 `<name>` is lowercase letters, digits and hyphens, and must match the
@@ -34,6 +35,17 @@ tags: [climate, oled]             # up to 8, lowercase
 derived_from: some-other-design   # optional: the design here yours started from
 source: https://example.com/post  # optional: a write-up or build log
 ```
+
+Photos must be still JPEG, PNG or WebP, at most 1 MB and 2048 px on
+the long side, with lowercase names and no metadata. Phone photos carry
+EXIF -- camera, time and usually GPS location -- so run
+
+```
+python scripts/strip_photos.py designs/<name>
+```
+
+which shrinks them, removes all metadata and fixes the names. The
+studio's Share does the same for photos you attach there.
 
 Run the checks locally with WireStudio installed:
 
@@ -52,12 +64,25 @@ python scripts/check.py <name>
 - **No secrets.** Credentials stay `!secret name` references, as the
   studio writes them. CI refuses literal values, but check before you
   push: a secret in a pull request is public even if the PR is closed.
-- **No images yet.** Photos need screening this repository does not do
-  yet, so a design directory holds only the three files above.
+- **Photos are of the build.** The device, its wiring, its enclosure,
+  where it is mounted. No people, nothing identifying a home or a
+  person, nothing you did not take yourself. A maintainer looks at
+  every photo before it merges and declines anything else.
 - **One design per pull request**, so each can be reviewed and merged
   on its own.
 - **Updating your own design** is a pull request like any other. To
   change someone else's, open a new design with `derived_from` set.
+
+## Reporting abuse
+
+If a pull request or issue here contains abusive or illegal content,
+do not download or share it. Report it to GitHub with **Report
+content** (the `...` menu on the comment or file), which reaches GitHub
+Trust & Safety. Then open an issue here that names the pull request
+number only, so the maintainer can close it. GitHub can remove content
+from a closed pull request; this repository cannot.
+
+## Review
 
 A maintainer reviews every pull request before it merges; CI passing is
 necessary but not sufficient. Designs that are unsafe to build (mains

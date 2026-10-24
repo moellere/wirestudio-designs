@@ -4,8 +4,13 @@ For each design directory:
   layout    only design.json, meta.yaml and README.md, each under its size cap
   meta      author, tags and attribution are well-formed
   secrets   no literal credential in design.json
+  components  any components/*.yaml passes WireStudio's component gate, and is used
   design    the document loads in WireStudio (migrated to the current schema)
+  review    the studio's own validate checks: an error fails, a warning is noted
   esphome   the YAML WireStudio generates passes upstream `esphome config`
+
+Designs that run code the studio did not generate (a lambda, external
+components, includes) are flagged for the reviewer, not refused.
 
 Usage:
     python scripts/check.py                 # every design
@@ -72,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
             entry = catalogue.load(slug, library)
             if not entry.errors and not args.no_esphome:
                 try:
-                    detail = esphome_config(slug, entry.design, library, Path(tmp))
+                    detail = esphome_config(slug, entry.design, entry.library, Path(tmp))
                 except Exception as e:  # a generator crash is a failed gate, not a crashed run
                     detail = f"WireStudio could not generate YAML: {e}"
                 if detail:
@@ -83,6 +88,13 @@ def main(argv: list[str] | None = None) -> int:
                 if annotate:
                     first = err.splitlines()[0].replace("%", "%25")
                     print(f"::error file=designs/{slug}/design.json::{first}")
+            notes = [f"warning: {w}" for w in entry.warnings]
+            if entry.custom_code:
+                notes.append("runs custom code (" + ", ".join(entry.custom_code) + "): read it before approving")
+            for note in notes:
+                print("        " + note)
+                if annotate:
+                    print(f"::warning file=designs/{slug}/design.json::{note.replace('%', '%25')}")
             failed += bool(entry.errors)
 
     print(f"\n{len(targets) - failed} of {len(targets)} designs pass")

@@ -7,6 +7,7 @@ from importlib.resources import files
 from pathlib import Path
 
 import pytest
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import catalogue  # noqa: E402
@@ -175,3 +176,80 @@ def test_strip_photos_makes_a_refused_photo_acceptable(designs):
     assert strip_photos.main([str(d)]) == 0
     assert [p.name for p in catalogue.photos(d)] == ["img-0042.jpg"]
     assert errors("porch-motion") == []
+
+
+
+
+def _led_driver_yaml() -> str:
+    """A user component, copied from WireStudio's own component corpus."""
+    return (Path(__file__).resolve().parent / "fixtures" / "led_driver_npn.yaml").read_text()
+
+
+def _with_component(doc: dict, library_id: str) -> dict:
+    doc["components"].append({"id": "status", "library_id": library_id, "label": "Status LED", "params": {}})
+    return doc
+
+
+def test_a_user_component_passes_the_gate_and_is_used(designs):
+    text = _led_driver_yaml()
+    cid = yaml.safe_load(text)["id"]
+    d = add(designs, "porch-motion", _with_component(_example("porch-motion"), cid))
+    (d / "components").mkdir()
+    (d / "components" / f"{cid}.yaml").write_text(text)
+    entry = catalogue.load("porch-motion")
+    assert not [e for e in entry.errors if "components/" in e or "does not load" in e]
+    assert entry.user_components == [cid]
+
+
+def test_an_unused_user_component_is_refused(designs):
+    text = _led_driver_yaml()
+    cid = yaml.safe_load(text)["id"]
+    d = add(designs, "porch-motion", _example("porch-motion"))
+    (d / "components").mkdir()
+    (d / "components" / f"{cid}.yaml").write_text(text)
+    assert any("does not use it" in e for e in errors("porch-motion"))
+
+
+def test_a_component_that_fails_the_gate_is_refused(designs):
+    d = add(designs, "porch-motion", _example("porch-motion"))
+    (d / "components").mkdir()
+    (d / "components" / "broken.yaml").write_text("id: broken\nname: no electrical block\n")
+    assert any(e.startswith("components/broken.yaml:") for e in errors("porch-motion"))
+
+
+def test_a_bundled_id_cannot_be_shipped_as_a_user_component(designs):
+    d = add(designs, "porch-motion", _example("porch-motion"))
+    (d / "components").mkdir()
+    text = _led_driver_yaml().replace("id: led_driver_npn", "id: bme280", 1)
+    (d / "components" / "bme280.yaml").write_text(text)
+    assert any("bundled component" in e for e in errors("porch-motion"))
+
+
+def test_a_compatibility_error_fails_the_design(designs):
+    doc = _example("porch-motion")
+    doc["components"].append({"id": "lamp", "library_id": "gpio_output", "label": "Lamp", "params": {}})
+    doc["connections"].append({"component_id": "lamp", "pin_role": "OUT",
+                               "target": {"kind": "gpio", "pin": "GPIO34"}})
+    add(designs, "porch-motion", doc)
+    assert any(e.startswith("input_only_as_output") for e in errors("porch-motion"))
+
+
+def test_a_warning_is_noted_not_failed(designs):
+    doc = _example("porch-motion")
+    doc["components"].append({"id": "lamp", "library_id": "gpio_output", "label": "Lamp", "params": {}})
+    doc["connections"].append({"component_id": "lamp", "pin_role": "OUT",
+                               "target": {"kind": "gpio", "pin": "GPIO12"}})
+    add(designs, "porch-motion", doc)
+    entry = catalogue.load("porch-motion")
+    assert entry.errors == [] and any("boot_strap" in w for w in entry.warnings)
+
+
+@pytest.mark.parametrize("node, reasons", [
+    ({"esphome_extras": {"sensor": [{"lambda": "return 1;"}]}}, ["lambda"]),
+    ({"x": "!lambda return 1;"}, ["lambda"]),
+    ({"esphome_extras": {"external_components": [{"source": "github://x/y"}], "esphome": {"includes": ["a.h"]}}},
+     ["external_components", "includes"]),
+    ({"components": []}, []),
+])
+def test_custom_code_is_found_wherever_it_is(node, reasons):
+    assert catalogue.custom_code(node) == reasons

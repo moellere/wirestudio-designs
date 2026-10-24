@@ -4,6 +4,7 @@
     designs/<slug>/meta.yaml     author, tags, attribution (required)
     designs/<slug>/README.md     longer notes (optional)
     designs/<slug>/photos/*      up to four photos of the build (optional)
+    designs/<slug>/components/*  user-authored component YAML the design uses (optional)
 
 Nothing else is accepted in a design directory. Photos are checked for
 shape here -- format, size, and no metadata, since a phone photo's EXIF
@@ -14,6 +15,7 @@ from __future__ import annotations
 
 import json
 import re
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -31,6 +33,9 @@ LICENSE = "CC-BY-4.0"
 # Per-file size caps. A design.json is a few KB; anything near these is
 # not a design.
 ALLOWED_FILES = {"design.json": 256 * 1024, "meta.yaml": 4 * 1024, "README.md": 64 * 1024}
+COMPONENT = re.compile(r"^components/[a-z0-9][a-z0-9_-]{0,63}\.yaml$")
+COMPONENT_BYTES = 32 * 1024
+MAX_COMPONENTS = 8
 PHOTO = re.compile(r"^photos/[a-z0-9][a-z0-9-]{0,62}\.(jpg|jpeg|png|webp)$")
 PHOTO_FORMATS = {"jpg": "JPEG", "jpeg": "JPEG", "png": "PNG", "webp": "WEBP"}
 MAX_PHOTOS = 4
@@ -55,6 +60,10 @@ class Entry:
     meta: dict = field(default_factory=dict)
     raw: dict = field(default_factory=dict)
     design: object = None
+    library: object = None
+    warnings: list[str] = field(default_factory=list)
+    user_components: list[str] = field(default_factory=list)
+    custom_code: list[str] = field(default_factory=list)
 
 
 def slugs() -> list[str]:
@@ -106,6 +115,83 @@ def check_photo(p: Path) -> list[str]:
     return errors
 
 
+# What makes a design run code the studio did not generate: a lambda is C++
+# compiled into the firmware, the rest pull code from outside.
+_CODE_KEYS = {"lambda": "lambda", "external_components": "external_components",
+              "includes": "includes", "libraries": "libraries"}
+
+
+def custom_code(node) -> list[str]:
+    """Why a reviewer should read this design's code, as sorted reasons."""
+    found: set[str] = set()
+
+    def walk(n):
+        if isinstance(n, dict):
+            for k, v in n.items():
+                if k in _CODE_KEYS:
+                    found.add(_CODE_KEYS[k])
+                walk(v)
+        elif isinstance(n, list):
+            for v in n:
+                walk(v)
+        elif isinstance(n, str) and n.startswith("!lambda"):
+            found.add("lambda")
+
+    walk(node)
+    return sorted(found)
+
+
+def _design_library(path: Path, base):
+    """The library the design is checked against: the bundled one, plus
+    the design's own components/ run through WireStudio's component gate."""
+    from wirestudio.library import Library
+    from wirestudio.library.check import create_component
+
+    files = sorted((path / "components").glob("*.yaml")) if (path / "components").is_dir() else []
+    if not files:
+        return base, [], []
+    library = Library(base.root, Path(tempfile.mkdtemp(prefix=f"{path.name}-lib-")))
+    ids, errors = [], []
+    for f in files:
+        report = create_component(f.read_text(), library)
+        if not report.ok:
+            errors.append(f"components/{f.name}: " + "; ".join(report.errors))
+        elif report.library_id != f.stem:
+            errors.append(f"components/{f.name}: its id is '{report.library_id}'; name the file {report.library_id}.yaml")
+        else:
+            ids.append(report.library_id)
+    return library, ids, errors
+
+
+def review(entry: Entry) -> None:
+    """The checks the studio's validate runs. An error blocks the merge, as
+    it would block a render in strict mode; a warning is for the reviewer."""
+    from wirestudio.csp.compatibility import check_pin_compatibility
+    from wirestudio.generate.display_intent import validate_show
+    from wirestudio.intent import validate_automations
+    from wirestudio.targets import get_target
+    from wirestudio.validate import (check_board_flash, check_electrical, check_net_targets,
+                                     check_part_overrides)
+
+    d, lib = entry.design, entry.library
+    doc = d.model_dump(mode="json")
+    for w in check_pin_compatibility(doc, lib):
+        where = f"{w.component_id}.{w.pin_role}" + (f" ({w.pin})" if w.pin else "")
+        line = f"{w.code}: {where}: {w.message}"
+        if w.severity == "error":
+            entry.errors.append(line)
+        elif w.severity == "warn":
+            entry.warnings.append(line)
+    checks = (get_target(d.target).validate(d, lib) + validate_automations(d, lib) + validate_show(d, lib)
+              + check_board_flash(d, lib) + check_part_overrides(d, lib) + check_electrical(d, lib)
+              + check_net_targets(d, lib))
+    for w in checks:
+        if w.level == "error":
+            entry.errors.append(f"{w.code}: {w.text}")
+        elif w.level == "warn":
+            entry.warnings.append(f"{w.code}: {w.text}")
+
+
 def _leaked_secrets(node, where: str = "") -> list[str]:
     found = []
     if isinstance(node, dict):
@@ -149,6 +235,7 @@ def _check_meta(meta, slugs_known: set[str]) -> list[str]:
 
 def load(slug: str, library=None) -> Entry:
     """Read and check one design. Errors are collected, never raised."""
+    from wirestudio.library import default_library
     from wirestudio.migrate import load_design
 
     path = DESIGNS / slug
@@ -163,13 +250,18 @@ def load(slug: str, library=None) -> Entry:
             continue
         if PHOTO.match(rel):
             entry.errors += check_photo(p)
+        elif COMPONENT.match(rel):
+            if p.stat().st_size > COMPONENT_BYTES:
+                entry.errors.append(f"{rel}: over {COMPONENT_BYTES // 1024} KB")
         elif rel not in ALLOWED_FILES:
-            entry.errors.append(f"{rel}: not allowed; a design holds {sorted(ALLOWED_FILES)} and "
-                                "photos/<name>.jpg|png|webp")
+            entry.errors.append(f"{rel}: not allowed; a design holds {sorted(ALLOWED_FILES)}, "
+                                "photos/<name>.jpg|png|webp and components/<id>.yaml")
         elif p.stat().st_size > ALLOWED_FILES[rel]:
             entry.errors.append(f"{rel}: over {ALLOWED_FILES[rel] // 1024} KB")
     if len(photos(path)) > MAX_PHOTOS:
         entry.errors.append(f"photos/: at most {MAX_PHOTOS} photos per design")
+    if len(list((path / "components").glob("*.yaml"))) > MAX_COMPONENTS:
+        entry.errors.append(f"components/: at most {MAX_COMPONENTS} per design")
 
     meta_path = path / "meta.yaml"
     if not meta_path.is_file():
@@ -197,8 +289,19 @@ def load(slug: str, library=None) -> Entry:
                             + " -- use `!secret name` references")
     if isinstance(entry.raw, dict) and entry.raw.get("id") != slug:
         entry.errors.append(f"design.json: `id` must be '{slug}', the directory name")
+    entry.custom_code = custom_code(entry.raw)
+    entry.library, entry.user_components, component_errors = _design_library(path, library or default_library())
+    entry.errors += component_errors
+    if component_errors:
+        return entry
     try:
-        entry.design = load_design(entry.raw, library)
+        entry.design = load_design(entry.raw, entry.library)
     except Exception as e:  # MigrationError or pydantic's ValidationError
         entry.errors.append(f"design.json: does not load in WireStudio: {e}")
+        return entry
+    used = {c.library_id for c in entry.design.components}
+    for cid in entry.user_components:
+        if cid not in used:
+            entry.errors.append(f"components/{cid}.yaml: the design does not use it")
+    review(entry)
     return entry

@@ -5,6 +5,7 @@
     designs/<slug>/README.md     longer notes (optional)
     designs/<slug>/photos/*      up to four photos of the build (optional)
     designs/<slug>/components/*  user-authored component YAML the design uses (optional)
+    designs/<slug>/boards/*      the user-authored board YAML the design is on (optional)
 
 Nothing else is accepted in a design directory. Photos are checked for
 shape here -- format, size, and no metadata, since a phone photo's EXIF
@@ -36,6 +37,7 @@ ALLOWED_FILES = {"design.json": 256 * 1024, "meta.yaml": 4 * 1024, "README.md": 
 COMPONENT = re.compile(r"^components/[a-z0-9][a-z0-9_-]{0,63}\.yaml$")
 COMPONENT_BYTES = 32 * 1024
 MAX_COMPONENTS = 8
+BOARD = re.compile(r"^boards/[a-z0-9][a-z0-9_-]{0,63}\.yaml$")
 PHOTO = re.compile(r"^photos/[a-z0-9][a-z0-9-]{0,62}\.(jpg|jpeg|png|webp)$")
 PHOTO_FORMATS = {"jpg": "JPEG", "jpeg": "JPEG", "png": "PNG", "webp": "WEBP"}
 MAX_PHOTOS = 4
@@ -63,6 +65,7 @@ class Entry:
     library: object = None
     warnings: list[str] = field(default_factory=list)
     user_components: list[str] = field(default_factory=list)
+    user_board: str | None = None
     custom_code: list[str] = field(default_factory=list)
 
 
@@ -143,24 +146,29 @@ def custom_code(node) -> list[str]:
 
 def _design_library(path: Path, base):
     """The library the design is checked against: the bundled one, plus
-    the design's own components/ run through WireStudio's component gate."""
+    the design's own components/ and boards/ run through WireStudio's
+    component and board gates. Returns (library, component ids, board ids,
+    errors)."""
     from wirestudio.library import Library
+    from wirestudio.library.board_check import create_board
     from wirestudio.library.check import create_component
 
-    files = sorted((path / "components").glob("*.yaml")) if (path / "components").is_dir() else []
-    if not files:
-        return base, [], []
+    shipped = [(kind, f) for kind in ("boards", "components")
+               for f in (sorted((path / kind).glob("*.yaml")) if (path / kind).is_dir() else [])]
+    if not shipped:
+        return base, [], [], []
     library = Library(base.root, Path(tempfile.mkdtemp(prefix=f"{path.name}-lib-")))
-    ids, errors = [], []
-    for f in files:
-        report = create_component(f.read_text(), library)
+    ids: dict[str, list[str]] = {"components": [], "boards": []}
+    errors = []
+    for kind, f in shipped:
+        report = (create_board if kind == "boards" else create_component)(f.read_text(), library)
         if not report.ok:
-            errors.append(f"components/{f.name}: " + "; ".join(report.errors))
+            errors.append(f"{kind}/{f.name}: " + "; ".join(report.errors))
         elif report.library_id != f.stem:
-            errors.append(f"components/{f.name}: its id is '{report.library_id}'; name the file {report.library_id}.yaml")
+            errors.append(f"{kind}/{f.name}: its id is '{report.library_id}'; name the file {report.library_id}.yaml")
         else:
-            ids.append(report.library_id)
-    return library, ids, errors
+            ids[kind].append(report.library_id)
+    return library, ids["components"], ids["boards"], errors
 
 
 def review(entry: Entry) -> None:
@@ -250,18 +258,20 @@ def load(slug: str, library=None) -> Entry:
             continue
         if PHOTO.match(rel):
             entry.errors += check_photo(p)
-        elif COMPONENT.match(rel):
+        elif COMPONENT.match(rel) or BOARD.match(rel):
             if p.stat().st_size > COMPONENT_BYTES:
                 entry.errors.append(f"{rel}: over {COMPONENT_BYTES // 1024} KB")
         elif rel not in ALLOWED_FILES:
             entry.errors.append(f"{rel}: not allowed; a design holds {sorted(ALLOWED_FILES)}, "
-                                "photos/<name>.jpg|png|webp and components/<id>.yaml")
+                                "photos/<name>.jpg|png|webp, components/<id>.yaml and boards/<id>.yaml")
         elif p.stat().st_size > ALLOWED_FILES[rel]:
             entry.errors.append(f"{rel}: over {ALLOWED_FILES[rel] // 1024} KB")
     if len(photos(path)) > MAX_PHOTOS:
         entry.errors.append(f"photos/: at most {MAX_PHOTOS} photos per design")
     if len(list((path / "components").glob("*.yaml"))) > MAX_COMPONENTS:
         entry.errors.append(f"components/: at most {MAX_COMPONENTS} per design")
+    if len(list((path / "boards").glob("*.yaml"))) > 1:
+        entry.errors.append("boards/: at most one, the board the design is on")
 
     meta_path = path / "meta.yaml"
     if not meta_path.is_file():
@@ -290,10 +300,11 @@ def load(slug: str, library=None) -> Entry:
     if isinstance(entry.raw, dict) and entry.raw.get("id") != slug:
         entry.errors.append(f"design.json: `id` must be '{slug}', the directory name")
     entry.custom_code = custom_code(entry.raw)
-    entry.library, entry.user_components, component_errors = _design_library(path, library or default_library())
-    entry.errors += component_errors
-    if component_errors:
+    entry.library, entry.user_components, boards, library_errors = _design_library(path, library or default_library())
+    entry.errors += library_errors
+    if library_errors:
         return entry
+    entry.user_board = boards[0] if boards else None
     try:
         entry.design = load_design(entry.raw, entry.library)
     except Exception as e:  # MigrationError or pydantic's ValidationError
@@ -303,5 +314,13 @@ def load(slug: str, library=None) -> Entry:
     for cid in entry.user_components:
         if cid not in used:
             entry.errors.append(f"components/{cid}.yaml: the design does not use it")
+    board_id = entry.design.board.library_id
+    if not entry.library.board_source(board_id):
+        entry.errors.append(f"design.json: board '{board_id}' is neither in WireStudio's library "
+                            f"nor shipped as boards/{board_id}.yaml")
+        return entry
+    if entry.user_board and entry.user_board != entry.design.board.library_id:
+        entry.errors.append(f"boards/{entry.user_board}.yaml: the design is on "
+                            f"{entry.design.board.library_id}, not this board")
     review(entry)
     return entry

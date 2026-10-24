@@ -23,6 +23,7 @@ designs/<name>/
   README.md     optional: what it is, what you built, what to watch for
   photos/       optional: up to 4 photos of the build (front.jpg, inside.jpg)
   components/   optional: components you wrote in the studio that the design uses
+  boards/       optional: the board you wrote in the studio, if the design is on one
 ```
 
 `<name>` is lowercase letters, digits and hyphens, and must match the
@@ -41,7 +42,9 @@ source: https://example.com/post  # optional: a write-up or build log
 file under its user library), named after its `id`. Each must pass the
 same gate the studio's component editor runs, may not reuse a bundled
 component's id, and must be used by the design. At most 8, 32 KB each.
-Share in the studio adds them for you.
+`boards/<id>.yaml` is the same for a board you wrote: at most one, the
+board the design is on, through the studio's board gate. Share in the
+studio adds them for you.
 
 Photos must be still JPEG, PNG or WebP, at most 1 MB and 2048 px on
 the long side, with lowercase names and no metadata. Phone photos carry
@@ -58,8 +61,56 @@ Run the checks locally with WireStudio installed:
 
 ```
 pip install -r requirements.txt
-python scripts/check.py <name>
+python scripts/check.py <name>                  # a design
+python scripts/check.py boards/<id>             # or a library entry
 ```
+
+## Contributing a component or board
+
+A part or board on its own, so anyone can install it without a design,
+goes under `library/`:
+
+```
+library/components/<id>/
+  component.yaml   the component, as your studio's user library holds it
+  meta.yaml        who wrote it and where its data comes from
+  README.md        optional: what you checked it against, what you built with it
+library/boards/<id>/
+  board.yaml       the board
+  meta.yaml
+  README.md
+```
+
+`<id>` is the `id` inside the YAML. **Share** on a user component or
+board in the studio packs the folder; drag it onto the library upload
+page for its kind, as for a design.
+
+`meta.yaml`:
+
+```yaml
+author: your-github-handle
+tags: [esp32s2, usb-c]                                # up to 8, lowercase
+source: https://www.wemos.cc/en/latest/s2/s2_mini.html   # required: datasheet or product page
+```
+
+CI runs the same gate the studio's library editor runs. For a component
+that covers the schema, subcircuit nets, the ESPHome template, and the
+KiCad symbol and footprint. For a board it covers every pin a bus,
+onboard part or radio names against the GPIO list, the KiCad symbol's
+pins, the enclosure geometry, and `platformio_board` against ESPHome's
+board list. Then `esphome config` runs on what the gate renders. An id
+may not reuse a bundled one, nor differ from a file of the same id that
+a design here ships. A component whose template holds a `lambda` or
+pulls in external code is flagged for the reviewer.
+
+The reviewer checks the pinout and ratings against `source`, so link the
+page you actually worked from.
+
+**License.** Library entries are [MIT](library/LICENSE), not CC-BY like
+designs, so the maintainer can promote one into WireStudio's bundled
+library. A promoted entry keeps your handle in a comment at the top of
+its file and in WireStudio's changelog. By opening the pull request you
+license the entry under MIT and confirm it is yours to license.
 
 ## Rules
 

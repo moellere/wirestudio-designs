@@ -1,4 +1,4 @@
-"""Write index.json: what the studio's browse view lists.
+"""Write index.json: what the studio's browse view and library lists show.
 
 Run on main after a merge; the workflow publishes the file to the `index`
 branch, where the studio reads it from raw.githubusercontent.com. Designs
@@ -18,6 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import catalogue  # noqa: E402
+import library as lib_entries  # noqa: E402
 
 REPO = "moellere/wirestudio-designs"
 
@@ -51,6 +52,10 @@ def entry_json(entry: catalogue.Entry) -> dict:
             {"id": cid, "url": f"https://raw.githubusercontent.com/{REPO}/main/designs/{entry.slug}/components/{cid}.yaml"}
             for cid in entry.user_components
         ],
+        "user_boards": [
+            {"id": entry.user_board,
+             "url": f"https://raw.githubusercontent.com/{REPO}/main/designs/{entry.slug}/boards/{entry.user_board}.yaml"}
+        ] if entry.user_board else [],
         "photos": [f"https://raw.githubusercontent.com/{REPO}/main/designs/{entry.slug}/photos/{p.name}"
                    for p in catalogue.photos(entry.path)],
         "added": added,
@@ -58,6 +63,29 @@ def entry_json(entry: catalogue.Entry) -> dict:
         "design_url": f"https://raw.githubusercontent.com/{REPO}/main/designs/{entry.slug}/design.json",
         "page_url": f"https://github.com/{REPO}/tree/main/designs/{entry.slug}",
     }
+
+
+def library_json(entry: lib_entries.LibraryEntry) -> dict:
+    added, updated = _git_dates(entry.path)
+    item = entry.item
+    out = {
+        "id": entry.id,
+        "name": item.name,
+        "author": entry.meta["author"],
+        "tags": entry.meta.get("tags", []),
+        "license": lib_entries.LICENSE,
+        "source": entry.meta["source"],
+        "has_readme": (entry.path / "README.md").is_file(),
+        "url": f"https://raw.githubusercontent.com/{REPO}/main/{entry.where}/{entry.file}",
+        "page_url": f"https://github.com/{REPO}/tree/main/{entry.where}",
+        "added": added,
+        "updated": updated,
+    }
+    if entry.kind == "boards":
+        out.update(mcu=item.mcu, chip_variant=item.chip_variant)
+    else:
+        out.update(category=item.category, description=item.notes or "", custom_code=entry.custom_code)
+    return out
 
 
 def main() -> int:
@@ -72,6 +100,14 @@ def main() -> int:
             skipped.append(slug)
             continue
         designs.append(entry_json(entry))
+    entries: dict[str, list] = {kind: [] for kind in lib_entries.KINDS}
+    for kind in lib_entries.KINDS:
+        for lid in lib_entries.ids(kind):
+            entry = lib_entries.load(kind, lid, library)
+            if entry.errors:
+                skipped.append(entry.where)
+                continue
+            entries[kind].append(library_json(entry))
     for slug in skipped:
         print(f"left out {slug}: fails its checks", file=sys.stderr)
     json.dump({
@@ -79,6 +115,7 @@ def main() -> int:
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "wirestudio": __version__,
         "designs": designs,
+        **entries,
     }, sys.stdout, indent=1)
     sys.stdout.write("\n")
     return 0

@@ -1,0 +1,447 @@
+{
+ "version": 1,
+ "generated": "2026-10-24T15:09:22+00:00",
+ "wirestudio": "0.46.0",
+ "designs": [
+  {
+   "slug": "bluemotion",
+   "name": "Blue motion sensor with NeoPixel feedback",
+   "description": "ESP8266 D1 Mini, single PIR on GPIO4, single WS2812B on GPIO14. Motion lights the LED; LED also blinks on boot.",
+   "author": "moellere",
+   "tags": [
+    "motion",
+    "pir",
+    "neopixel"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "wemos-d1-mini",
+   "mcu": "esp8266",
+   "components": [
+    "hc-sr501",
+    "ws2812b"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/bluemotion/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/bluemotion"
+  },
+  {
+   "slug": "desk-bike",
+   "name": "Desk Bike",
+   "description": "ProForm XP 185 U under-desk bike controller: brake motor H-bridge, feedback pot, crank reed switch, OLED + EC11 module, USB-C 5 V input. The control loop lives in desk-bike.yaml in the author's ESPHome repo.",
+   "author": "moellere",
+   "tags": [
+    "fitness",
+    "motor",
+    "oled",
+    "encoder"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "esp32-devkitc-v4",
+   "mcu": "esp32",
+   "components": [
+    "adc",
+    "gpio_input",
+    "hbridge_mosfet",
+    "pulse_counter",
+    "rotary_encoder",
+    "ssd1306",
+    "usb_c_power_in"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/desk-bike/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/desk-bike"
+  },
+  {
+   "slug": "distance-sensor",
+   "name": "Ultrasonic distance sensor with NeoPixel feedback",
+   "description": "ESP8266 NodeMCU v2 with an HC-SR04 (D5/D6) and a single WS2812B (D1) whose color is driven by the measured distance.",
+   "author": "moellere",
+   "tags": [
+    "distance",
+    "ultrasonic",
+    "neopixel"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "nodemcu-v2",
+   "mcu": "esp8266",
+   "components": [
+    "hc-sr04",
+    "ws2812b"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [
+    "lambda"
+   ],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/distance-sensor/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/distance-sensor"
+  },
+  {
+   "slug": "esp32-audio",
+   "name": "Garage I2S audio + ST7789 dashboard",
+   "description": "ESP32 NodeMCU-32S, Arduino framework. MAX98357A I2S DAC drives a Class-D speaker; ST7789V SPI display shows a clock + status. Hardware mute and backlight switches.",
+   "author": "moellere",
+   "tags": [
+    "audio",
+    "i2s",
+    "display"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "nodemcu-32s",
+   "mcu": "esp32",
+   "components": [
+    "gpio_output",
+    "max98357a",
+    "st7789"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/esp32-audio/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/esp32-audio"
+  },
+  {
+   "slug": "lorawan-battery-uplink",
+   "name": "TTGO LoRa32 v1 battery uplink (lorawan-for-esphome spike)",
+   "description": "W2 worked example for the LoRaWAN external-component path: a TTGO LoRa32 v1 reads its battery voltage via the ADC and uplinks it through `lorawan-for-esphome` to a US915 sub-band 2 gateway. The smallest design that exercises the full new path -- external_components fetch, lorawan: block, payload sensor binding -- so the generator output can be gated by `esphome config` in CI and hand-flashed against the live ChirpStack for the spike's hardware-join test. Keys ride `fleet.secrets_ref` -> `!secret` references; the actual values are minted by the ChirpStack provision step (W3) and written to secrets.yaml. The standalone Arduino path is untouched.",
+   "author": "moellere",
+   "tags": [
+    "lorawan",
+    "battery"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "ttgo-lora32-v1",
+   "mcu": "esp32",
+   "components": [
+    "adc"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/lorawan-battery-uplink/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/lorawan-battery-uplink"
+  },
+  {
+   "slug": "oled",
+   "name": "Status OLED",
+   "description": "ESP8266 D1 Mini driving an SSD1306 128x64 I2C OLED with reset on D0. Shows time, date, and the device IP.",
+   "author": "moellere",
+   "tags": [
+    "display",
+    "oled",
+    "status"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "wemos-d1-mini",
+   "mcu": "esp8266",
+   "components": [
+    "ssd1306"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/oled/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/oled"
+  },
+  {
+   "slug": "rc522",
+   "name": "RC522 RFID reader station",
+   "description": "ESP8266 D1 Mini with an MFRC522 RFID reader on SPI, plus a NeoPixel status LED, a piezo buzzer driven by RTTTL, and a hardware button.",
+   "author": "moellere",
+   "tags": [
+    "rfid",
+    "access",
+    "buzzer"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "wemos-d1-mini",
+   "mcu": "esp8266",
+   "components": [
+    "gpio_input",
+    "rc522",
+    "ws2812b"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [
+    "lambda"
+   ],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/rc522/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/rc522"
+  },
+  {
+   "slug": "scroller-micro",
+   "name": "SuperMini Scroller",
+   "description": "ESP32-C3 Super Mini driving a 1.3in OLED + rotary encoder + two-button panel module over I2C.",
+   "author": "moellere",
+   "tags": [
+    "oled",
+    "encoder",
+    "display"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "esp32-c3-supermini",
+   "mcu": "esp32",
+   "components": [
+    "gpio_input",
+    "gpio_output",
+    "rotary_encoder",
+    "ssd1306"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/scroller-micro/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/scroller-micro"
+  },
+  {
+   "slug": "securitypanel",
+   "name": "Whole-house door/window/motion security panel",
+   "description": "ESP8266 D1 Mini reads 12 contact + motion sensors through an MCP23017 over I2C and drives a piezo buzzer (RTTTL) on D7. Each sensor pin is its own gpio_input component bound to an expander_pin connection.",
+   "author": "moellere",
+   "tags": [
+    "security",
+    "door",
+    "motion",
+    "io-expander"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "wemos-d1-mini",
+   "mcu": "esp8266",
+   "components": [
+    "gpio_input",
+    "gpio_output",
+    "mcp23017"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [
+    "lambda"
+   ],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/securitypanel/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/securitypanel"
+  },
+  {
+   "slug": "solder-fan",
+   "name": "Solder exhaust fan controller",
+   "description": "Wemos D1 Mini driving a 12V 4-wire PWM fan from a panel potentiometer: the knob sets the exhaust speed and the fan's tachometer reports RPM. The fan's +12V comes from a separate supply sharing ground with the board; only the 25kHz PWM (D5) and open-collector tach (D2) touch the ESP. A wirestudio port of the classic ESPHome solder-fan config.",
+   "author": "moellere",
+   "tags": [
+    "fan",
+    "pwm",
+    "workshop"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "wemos-d1-mini",
+   "mcu": "esp8266",
+   "components": [
+    "potentiometer",
+    "pwm_fan"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/solder-fan/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/solder-fan"
+  },
+  {
+   "slug": "t-beam",
+   "name": "LilyGO TTGO T-Beam (onboard)",
+   "description": "Template for the LilyGO T-Beam (915 MHz variant): the onboard SX1276 LoRa radio, NEO-6M GPS on a dedicated UART and the user button, plus an I2C OLED and a DHT sensor on GPIO13. The AXP192 PMIC has no ESPHome core component, so it is left out.",
+   "author": "moellere",
+   "tags": [
+    "lora",
+    "gps",
+    "template",
+    "us915"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "ttgo-t-beam",
+   "mcu": "esp32",
+   "components": [
+    "dht",
+    "gpio_input",
+    "ssd1306",
+    "sx127x",
+    "uart_gps"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/t-beam/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/t-beam"
+  },
+  {
+   "slug": "ttgo-lora32",
+   "name": "TTGO LoRa32 V1 \u2014 LoRa node + OLED dashboard",
+   "description": "ESP32 TTGO LoRa32 V1 board. Onboard SX1276 LoRa radio on the dedicated SPI bus, onboard SSD1306 OLED on I2C, battery voltage on GPIO35, and a template button that transmits an example LoRa packet.",
+   "author": "moellere",
+   "tags": [
+    "lora",
+    "oled"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "ttgo-lora32-v1",
+   "mcu": "esp32",
+   "components": [
+    "ssd1306",
+    "sx127x"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [
+    "lambda"
+   ],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/ttgo-lora32/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/ttgo-lora32"
+  },
+  {
+   "slug": "wasserpir",
+   "name": "Wasserstein PIR motion sensor",
+   "description": "ESP8266 D1 Mini with a single PIR on D2. Sends motion to Home Assistant; reboots itself nightly.",
+   "author": "moellere",
+   "tags": [
+    "motion",
+    "pir"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "wemos-d1-mini",
+   "mcu": "esp8266",
+   "components": [
+    "hc-sr501"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/wasserpir/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/wasserpir"
+  },
+  {
+   "slug": "wemosgps",
+   "name": "WeMos D1 Mini GPS tracker",
+   "description": "ESP8266 D1 Mini reading a NEO-6M / NEO-8M GPS over hardware UART (D2 RX, D1 TX). Exposes 5 NMEA-derived sensors and an HA-side baud-rate selector.",
+   "author": "moellere",
+   "tags": [
+    "gps",
+    "uart"
+   ],
+   "license": "CC-BY-4.0",
+   "derived_from": null,
+   "source": null,
+   "board": "wemos-d1-mini",
+   "mcu": "esp8266",
+   "components": [
+    "uart_gps"
+   ],
+   "schema_version": "1.0",
+   "has_readme": true,
+   "custom_code": [
+    "lambda"
+   ],
+   "user_components": [],
+   "user_boards": [],
+   "photos": [],
+   "added": "2026-10-23T18:43:55-05:00",
+   "updated": "2026-10-23T18:43:55-05:00",
+   "design_url": "https://raw.githubusercontent.com/moellere/wirestudio-designs/main/designs/wemosgps/design.json",
+   "page_url": "https://github.com/moellere/wirestudio-designs/tree/main/designs/wemosgps"
+  }
+ ],
+ "components": [],
+ "boards": []
+}

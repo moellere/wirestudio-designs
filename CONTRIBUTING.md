@@ -22,6 +22,7 @@ designs/<name>/
   meta.yaml     who made it
   README.md     optional: what it is, what you built, what to watch for
   photos/       optional: up to 4 photos of the build (front.jpg, inside.jpg)
+  components/   optional: components you wrote in the studio that the design uses
 ```
 
 `<name>` is lowercase letters, digits and hyphens, and must match the
@@ -35,6 +36,12 @@ tags: [climate, oled]             # up to 8, lowercase
 derived_from: some-other-design   # optional: the design here yours started from
 source: https://example.com/post  # optional: a write-up or build log
 ```
+
+`components/<id>.yaml` is a component you authored in the studio (the
+file under its user library), named after its `id`. Each must pass the
+same gate the studio's component editor runs, may not reuse a bundled
+component's id, and must be used by the design. At most 8, 32 KB each.
+Share in the studio adds them for you.
 
 Photos must be still JPEG, PNG or WebP, at most 1 MB and 2048 px on
 the long side, with lowercase names and no metadata. Phone photos carry
